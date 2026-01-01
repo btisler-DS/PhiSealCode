@@ -1,0 +1,104 @@
+# Test Document 2: Drift-Inducing Contract
+
+## PARTNERSHIP AGREEMENT
+
+**Between:** The Parties (as defined below)
+**Purpose:** Mutual benefit and collaboration
+
+## SECTION 1: SCOPE
+
+The parties agree to work together on various projects as may be determined from time to time. The scope will include but not be limited to activities that both parties find valuable.
+
+## SECTION 2: FINANCIAL ARRANGEMENTS
+
+Payment shall be reasonable and mutually agreed upon. The amount will depend on the work performed and market conditions. Invoices should be submitted promptly.
+
+Late payments may incur fees, which will be determined based on the delay and circumstances.
+
+## SECTION 3: RESPONSIBILITIES
+
+**Party A will:**
+- Provide services as needed
+- Maintain quality standards
+- Respond to requests in a timely manner
+
+**Party B will:**
+- Compensate Party A fairly
+- Provide necessary resources
+- Communicate requirements clearly
+
+## SECTION 4: TERM AND TERMINATION
+
+This agreement begins when signed and continues until terminated by either party. Notice should be provided in advance, though the specific period is flexible depending on the situation.
+
+## SECTION 5: INTELLECTUAL PROPERTY
+
+Work created under this agreement belongs to whoever creates it, unless otherwise agreed. The parties may share ownership in some cases. Background IP remains with the original owner.
+
+## SECTION 6: CONFIDENTIALITY
+
+Both parties will protect sensitive information. What constitutes "sensitive" will be determined by the disclosing party. Obligations continue after termination for an appropriate period.
+
+## SECTION 7: LIABILITY
+
+Neither party will be liable beyond reasonable limits. Force majeure applies when circumstances beyond control occur. Each party should maintain appropriate insurance.
+
+## SECTION 8: DISPUTE RESOLUTION
+
+Disputes will be resolved through discussion first. If that fails, the parties may pursue mediation or arbitration or litigation as appropriate. Governing law will be applicable law.
+
+## SECTION 9: AMENDMENTS
+
+This agreement can be modified by mutual consent. Changes should be documented but the formality requirements are flexible.
+
+## SECTION 10: MISCELLANEOUS
+
+Standard provisions apply. This represents the parties' understanding, subject to any verbal agreements or prior discussions that remain in effect.
+
+**Page 2 - Additional Terms**
+
+## SECTION 11: SCOPE (REVISED)
+
+The parties will engage in business development activities. This may include consulting, product development, or other services as determined necessary.
+
+Note: Initial scope in Section 1 should be disregarded in favor of this section.
+
+## SECTION 12: PAYMENT TERMS (CLARIFICATION)
+
+Compensation will be:
+- Option A: Fixed monthly fee
+- Option B: Hourly rate
+- Option C: Revenue share
+
+The applicable method will be selected based on project type.
+
+Payment timing: Either net-30 or net-45 or upon completion, whichever is most appropriate.
+
+## SECTION 13: DURATION
+
+The agreement term is 12 months, renewable automatically unless terminated. However, certain provisions continue indefinitely. Some sections may expire after 6 months.
+
+## SECTION 14: INTELLECTUAL PROPERTY (ADDITIONAL)
+
+Party A retains all rights to deliverables until full payment is received. Upon payment, ownership transfers to Party B. However, Party A maintains a perpetual license to use the work.
+
+Background IP created before this agreement remains with the creating party, except when it's incorporated into joint work, in which case it becomes shared property.
+
+## CONFLICTING PROVISIONS
+
+Where sections conflict, the later section takes precedence, unless context suggests otherwise, or the parties agree to a different interpretation.
+
+**Signatures:**
+Party A: _________________ Date: _________
+Party B: _________________ Date: _________
+
+---
+
+**Expected Analysis Result:**
+- High Δ count (many ambiguities)
+- Contradictory terms (Sections 1 vs 11, IP conflicts)
+- Multiple assumptions required
+- Undefined terms ("reasonable", "appropriate", "timely")
+- Severity tags: HIGH for critical gaps
+- High entropy (ΔΦ)
+- Multiple conflict locations identified
