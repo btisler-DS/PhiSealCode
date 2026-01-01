@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "PhiSeal serverless API for document analysis",
   "main": "api/analyze.ts",
+  "scripts": {
+    "build": "echo 'Serverless functions - no build needed'"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "pdf-parse": "^1.1.1",
