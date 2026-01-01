@@ -1,12 +1,62 @@
 // Document processing service for PDF and DOCX files
+// Aligned with PhiSeal MASTER.md specification
+
+export interface SpanReference {
+  span_id: string;
+  char_start: number;
+  char_end: number;
+  section?: string;
+  page?: number;
+  paragraph?: number;
+}
 
 export interface ProcessedDocument {
   text: string;
+  span_map: SpanReference[];
   metadata: {
     filename: string;
     pageCount?: number;
     wordCount: number;
   };
+}
+
+/**
+ * Create span map from text
+ * Per MASTER.md: Preserve section boundaries, paragraph indices, sentence offsets
+ */
+function createSpanMap(text: string, pageInfo?: { pageNumber: number; charOffset: number }[]): SpanReference[] {
+  const spans: SpanReference[] = [];
+  const paragraphs = text.split('\n\n');
+  let charOffset = 0;
+
+  paragraphs.forEach((para, pIndex) => {
+    if (para.trim()) {
+      const sentences = para.match(/[^.!?]+[.!?]+/g) || [para];
+      let paraOffset = 0;
+
+      sentences.forEach((sentence, sIndex) => {
+        const start = charOffset + paraOffset;
+        const end = start + sentence.length;
+
+        // Find page number if pageInfo provided
+        const page = pageInfo?.find(p => start >= p.charOffset)?.pageNumber;
+
+        spans.push({
+          span_id: `p${pIndex + 1}.s${sIndex + 1}`,
+          char_start: start,
+          char_end: end,
+          paragraph: pIndex + 1,
+          page,
+        });
+
+        paraOffset += sentence.length;
+      });
+
+      charOffset += para.length + 2; // +2 for \n\n
+    }
+  });
+
+  return spans;
 }
 
 /**
@@ -17,15 +67,18 @@ export async function extractTextFromPDF(file: File): Promise<ProcessedDocument>
     // Dynamic import for web-only PDF.js
     const pdfjsLib = await import('pdfjs-dist');
 
-    // Set worker path
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Set worker path - use CDN for reliability (matches package version 5.4.530)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.mjs';
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
     let fullText = '';
+    const pageInfo: { pageNumber: number; charOffset: number }[] = [];
 
     for (let i = 1; i <= pdf.numPages; i++) {
+      pageInfo.push({ pageNumber: i, charOffset: fullText.length });
+
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
@@ -34,17 +87,21 @@ export async function extractTextFromPDF(file: File): Promise<ProcessedDocument>
       fullText += pageText + '\n\n';
     }
 
+    const trimmedText = fullText.trim();
+    const span_map = createSpanMap(trimmedText, pageInfo);
+
     return {
-      text: fullText.trim(),
+      text: trimmedText,
+      span_map,
       metadata: {
         filename: file.name,
         pageCount: pdf.numPages,
-        wordCount: fullText.trim().split(/\s+/).length,
+        wordCount: trimmedText.split(/\s+/).length,
       },
     };
   } catch (error) {
     console.error('PDF extraction error:', error);
-    throw new Error('Failed to extract text from PDF');
+    throw new Error(`Failed to extract text from PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -57,18 +114,20 @@ export async function extractTextFromDOCX(file: File): Promise<ProcessedDocument
     const arrayBuffer = await file.arrayBuffer();
 
     const result = await mammoth.extractRawText({ arrayBuffer });
-    const text = result.value;
+    const trimmedText = result.value.trim();
+    const span_map = createSpanMap(trimmedText);
 
     return {
-      text: text.trim(),
+      text: trimmedText,
+      span_map,
       metadata: {
         filename: file.name,
-        wordCount: text.trim().split(/\s+/).length,
+        wordCount: trimmedText.split(/\s+/).length,
       },
     };
   } catch (error) {
     console.error('DOCX extraction error:', error);
-    throw new Error('Failed to extract text from DOCX');
+    throw new Error(`Failed to extract text from DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

@@ -19,7 +19,9 @@
       "Bash(vercel env add:*)",
       "Bash(vercel --prod:*)",
       "Bash(curl:*)",
-      "Bash(npx expo start:*)"
+      "Bash(npx expo start:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ]
   }
 }
