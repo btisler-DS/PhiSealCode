@@ -15,9 +15,9 @@ type Intent = {
 type Observation = {
   id: string;
   type: string;
-  reference: string;
-  text: string;
-  anchor: string;
+  description: string;
+  spans: string[];
+  status: string;
 };
 
 export default function ReviewWorkspace() {
@@ -138,7 +138,7 @@ export default function ReviewWorkspace() {
 
           // Call analysis API if intent is set
           if (intent.text) {
-            await analyzeDocument(file, processed.text);
+            await analyzeDocument(file, processed);
           } else {
             setStatusText('Status: Document loaded. Set an intent to begin analysis.');
           }
@@ -155,9 +155,9 @@ export default function ReviewWorkspace() {
     }
   };
 
-  const analyzeDocument = async (file: File, documentText: string) => {
+  const analyzeDocument = async (file: File, processed: any) => {
     try {
-      setStatusText('Status: Analyzing document with Claude...');
+      setStatusText('Status: Analyzing document with Claude (Ω→Δ)...');
 
       // Convert file to base64
       const arrayBuffer = await file.arrayBuffer();
@@ -166,7 +166,7 @@ export default function ReviewWorkspace() {
       // Determine file type
       const fileType = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
 
-      // Call API
+      // Call API with constraints and span_map
       const response = await fetch('https://phi-seal-code.vercel.app/api/analyze', {
         method: 'POST',
         headers: {
@@ -177,12 +177,26 @@ export default function ReviewWorkspace() {
           fileName: file.name,
           fileType,
           intent: intent.text,
+          scope: intent.scope || undefined,
+          constraints: {
+            stay_in_document: intent.stayInDoc,
+            no_verdict_language: intent.noVerdict,
+            require_span_refs: intent.citeSpans,
+          },
+          span_map: processed.span_map,
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.observations) {
+      if (data.success && data.analysis_log) {
+        const { observations, operators } = data.analysis_log;
+        setObservations(observations);
+        setStatusText(
+          `Status: Δ (Delta) - ${observations.length} observations. Phase: ${operators.phase}`
+        );
+      } else if (data.success && data.observations) {
+        // Fallback for old response format
         setObservations(data.observations);
         setStatusText(`Status: Analysis complete. ${data.observations.length} observations found.`);
       } else {
@@ -367,11 +381,13 @@ export default function ReviewWorkspace() {
                   <View key={obs.id} style={styles.obsItem}>
                     <View style={styles.obsMeta}>
                       <View style={styles.tag}>
-                        <ThemedText style={styles.tagText}>{obs.type}</ThemedText>
+                        <ThemedText style={styles.tagText}>{obs.type.replace('_', ' ')}</ThemedText>
                       </View>
-                      <ThemedText style={styles.obsRef}>{obs.reference}</ThemedText>
+                      <ThemedText style={styles.obsRef}>
+                        {obs.spans && obs.spans.length > 0 ? obs.spans.join(', ') : 'Document'}
+                      </ThemedText>
                     </View>
-                    <ThemedText style={styles.obsText}>{obs.text}</ThemedText>
+                    <ThemedText style={styles.obsText}>{obs.description}</ThemedText>
                     <View style={styles.obsActions}>
                       <Pressable style={[styles.btn, styles.btnMini]}>
                         <ThemedText style={styles.btnText}>Jump</ThemedText>

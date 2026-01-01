@@ -20,7 +20,14 @@ interface AnalysisRequest {
   file: string; // base64 encoded
   fileName: string;
   fileType: 'pdf' | 'docx';
-  intent: 'analysis' | 'review' | 'audit';
+  intent: string; // Intent statement
+  scope?: string;
+  constraints?: {
+    stay_in_document: boolean;
+    no_verdict_language: boolean;
+    require_span_refs: boolean;
+  };
+  span_map?: any[]; // SpanReference[]
 }
 
 // Load MASTER.md as system prompt
@@ -105,11 +112,18 @@ export default async function handler(
   }
 
   try {
-    const { file, fileName, fileType, intent }: AnalysisRequest = req.body;
+    const { file, fileName, fileType, intent, scope, constraints, span_map }: AnalysisRequest = req.body;
 
     if (!file || !fileName || !fileType || !intent) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: file, fileName, fileType, intent' });
     }
+
+    // Default constraints if not provided
+    const reviewConstraints = constraints || {
+      stay_in_document: true,
+      no_verdict_language: true,
+      require_span_refs: true,
+    };
 
     // Extract text based on file type
     let documentText: string;
@@ -127,18 +141,33 @@ export default async function handler(
     // Load system prompt from MASTER.md
     const systemPrompt = loadSystemPrompt();
 
-    // Create user prompt for document analysis with PhiSeal principles
-    const userPrompt = `Review the following document according to the PhiSeal principles:
+    // Create user prompt for document analysis with PhiSeal principles + HDT² framework
+    const constraintInstructions = [];
+    if (reviewConstraints.stay_in_document) {
+      constraintInstructions.push('- CONSTRAINT: Stay within the document. Do NOT introduce external facts. Flag unknowns explicitly.');
+    }
+    if (reviewConstraints.no_verdict_language) {
+      constraintInstructions.push('- CONSTRAINT: No verdict language. Avoid: score, correct, wrong, proven, good, bad, strong, weak, valid, invalid.');
+    }
+    if (reviewConstraints.require_span_refs) {
+      constraintInstructions.push('- CONSTRAINT: Every observation MUST reference specific spans (e.g., p3.s2, Section 2, Page 4).');
+    }
+
+    const userPrompt = `Review the following document according to the PhiSeal principles and HDT² framework:
 
 CORE PRINCIPLES:
-- You surface structural uncertainty. You do NOT answer, advise, or conclude.
+- You surface structural uncertainty (Δ). You do NOT answer, advise, or conclude.
 - Use neutral language: "unclear," "unspecified," "not established," "appears to assume."
-- NO scoring, grading, or verdicts (no "good/bad," "strong/weak," "high/medium/low").
-- Stay within the document. Flag unknowns explicitly rather than filling gaps.
-- Always cite where in the document each observation appears.
+- NO scoring, grading, or verdicts.
 
-REVIEW INTENT:
+ACTIVE CONSTRAINTS:
+${constraintInstructions.join('\n')}
+
+REVIEW INTENT (Ω - Intent Lock):
 ${intent}
+${scope ? `SCOPE: ${scope}` : ''}
+
+${span_map ? `SPAN MAP AVAILABLE:\n${span_map.length} spans tracked (p1.s1 format)\n` : ''}
 
 DOCUMENT CONTENT:
 ${documentText}
@@ -147,19 +176,25 @@ Please provide observations in the following JSON structure:
 {
   "observations": [
     {
-      "type": "Ambiguity | Missing assumption | Gap | Unresolved reference | Tension",
-      "reference": "Where in the document (e.g., 'Section 2', 'Page 3', 'Paragraph 5')",
-      "text": "Neutral observation of what is structurally uncertain or unsupported",
-      "anchor": "ref-1"
+      "id": "obs_001",
+      "type": "missing_assumption | ambiguity | gap | tension | unresolved_reference",
+      "description": "Neutral observation of what is structurally uncertain or unsupported",
+      "spans": ["p3.s2", "p4.s1"],
+      "status": "open"
     }
   ]
 }
 
+HDT² FRAMEWORK:
+- Ω (Omega): Intent locked - ${intent}
+- Δ (Delta): Surface uncertainty - generate observations
+- Φ (Phi): Resolution attempts - user-initiated (not in this pass)
+- Ψ (Psi): Seal readiness - determined after review
+
 REMEMBER:
-- NO severity scores or confidence levels
-- NO recommendations or suggestions
-- NO external facts or gap-filling
-- ONLY surface what is uncertain, missing, or in tension within the document itself`;
+- NO external facts (${reviewConstraints.stay_in_document ? 'ENFORCED' : 'not enforced'})
+- NO verdict language (${reviewConstraints.no_verdict_language ? 'ENFORCED' : 'not enforced'})
+- ALL observations need span references (${reviewConstraints.require_span_refs ? 'REQUIRED' : 'optional'})`;
 
     // Call Anthropic API
     const message = await anthropic.messages.create({
@@ -208,25 +243,47 @@ REMEMBER:
       }];
     }
 
-    // Add IDs to observations if not present
+    // Add IDs and normalize observations
     const observationsWithIds = observations.map((obs: any, idx: number) => ({
-      id: obs.id || `obs-${Date.now()}-${idx}`,
-      type: obs.type || 'Observation',
-      reference: obs.reference || 'Document',
-      text: obs.text || obs.description || 'No description',
-      anchor: obs.anchor || `ref-${idx}`,
+      id: obs.id || `obs_${Date.now()}_${idx}`,
+      type: obs.type || 'ambiguity',
+      description: obs.text || obs.description || 'No description',
+      spans: obs.spans || (obs.reference ? [obs.reference] : []),
+      status: obs.status || 'open',
     }));
 
-    // Construct response
+    // HDT² Operator State
+    const operators = {
+      phase: 'Δ', // Delta - uncertainty surfaced
+      omega_locked_at: new Date().toISOString(),
+      delta_count: observationsWithIds.length,
+      phi_actions: 0,
+      psi_ready: false,
+    };
+
+    // Construct analysis_log.json structure (per MASTER.md)
+    const analysisLog = {
+      phiseal_version: '1.0',
+      review_id: `review_${Date.now()}`,
+      created_at: new Date().toISOString(),
+      intent: {
+        statement: intent,
+        scope: scope || null,
+      },
+      constraints: reviewConstraints,
+      operators,
+      observations: observationsWithIds,
+    };
+
+    // Return analysis log + metadata
     return res.status(200).json({
       success: true,
-      observations: observationsWithIds,
+      analysis_log: analysisLog,
       metadata: {
         file_hash: fileHash,
         extraction_method: fileType === 'pdf' ? 'pdf-parse_v1.0' : 'mammoth_v1.0',
         timestamp: new Date().toISOString(),
         engine_version: 'phiseal_v0.1',
-        intent,
       },
     });
   } catch (error: any) {
