@@ -1,6 +1,13 @@
 // Document processing service for PDF and DOCX files
 // Aligned with PhiSeal MASTER.md specification
 
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker path globally for PDF.js
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.mjs';
+}
+
 export interface SpanReference {
   span_id: string;
   char_start: number;
@@ -64,12 +71,6 @@ function createSpanMap(text: string, pageInfo?: { pageNumber: number; charOffset
  */
 export async function extractTextFromPDF(file: File): Promise<ProcessedDocument> {
   try {
-    // Dynamic import for web-only PDF.js
-    const pdfjsLib = await import('pdfjs-dist');
-
-    // Set worker path - use CDN for reliability (matches package version 5.4.530)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.mjs';
-
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
