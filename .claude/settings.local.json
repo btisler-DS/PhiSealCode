@@ -8,7 +8,10 @@
       "Bash(git remote add:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nInitial Expo scaffold for PhiSeal mobile app\n\n- Created with create-expo-app\n- React Native with Expo Router\n- Cross-platform support (iOS/Android/Web)\n- Bottom tabs navigation\n- TypeScript configured\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ]
   }
 }
