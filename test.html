@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PhiSeal — Review Workspace</title>
+
+  <style>
+    :root{
+      --bg: #0b0d12;
+      --panel: #0f1420;
+      --panel2: #0d111a;
+      --line: rgba(255,255,255,0.10);
+      --muted: rgba(255,255,255,0.70);
+      --text: rgba(255,255,255,0.92);
+      --soft: rgba(255,255,255,0.05);
+      --accent: #8ab4ff;
+      --good: #7ee787;
+      --warn: #f2cc60;
+      --bad: #ff7b72;
+
+      --radius: 14px;
+      --radius2: 10px;
+      --shadow: 0 12px 40px rgba(0,0,0,0.45);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: radial-gradient(1000px 600px at 20% 0%, rgba(138,180,255,0.10), transparent 50%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(126,231,135,0.08), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    a{ color: var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    /* Layout */
+    .app{
+      display:grid;
+      grid-template-rows: 64px 1fr 48px;
+      height:100vh;
+      min-height: 680px;
+    }
+
+    /* Top bar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(to bottom, rgba(15,20,32,0.92), rgba(15,20,32,0.68));
+      backdrop-filter: blur(10px);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      min-width: 240px;
+    }
+
+    .logo{
+      width: 34px; height:34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(138,180,255,0.9), rgba(126,231,135,0.55));
+      box-shadow: 0 10px 30px rgba(138,180,255,0.20);
+    }
+
+    .brand-title{
+      display:flex;
+      flex-direction:column;
+      line-height: 1.05;
+    }
+
+    .brand-title strong{
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .brand-title span{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mode-pill{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      max-width: 520px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .mode-pill .dot{
+      width: 8px; height: 8px;
+      border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(138,180,255,0.12);
+    }
+    .mode-pill b{ color: var(--text); font-weight: 600; }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 240px;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      appearance:none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      cursor:pointer;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.06); }
+    .btn.primary{
+      border-color: rgba(138,180,255,0.40);
+      background: rgba(138,180,255,0.10);
+    }
+    .btn.primary:hover{ background: rgba(138,180,255,0.16); }
+
+    /* Main grid */
+    .main{
+      display:grid;
+      grid-template-columns: 340px 1fr 380px;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .panel{
+      background: linear-gradient(to bottom, rgba(15,20,32,0.85), rgba(13,17,26,0.85));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height: 0; /* allow internal scroll */
+    }
+
+    .panel-header{
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .panel-header h2{
+      margin:0;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    .panel-header p{
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .panel-body{
+      padding: 14px;
+      height: 100%;
+      overflow:auto;
+    }
+
+    /* Left rail: Intent + constraints */
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    label{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    textarea, input[type="text"]{
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 13px;
+      outline:none;
+    }
+    textarea{ min-height: 96px; resize: vertical; }
+
+    .toggle{
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      padding: 10px 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 10px;
+    }
+    .toggle input{ margin-top: 3px; }
+    .toggle strong{
+      display:block;
+      font-size: 12px;
+    }
+    .toggle span{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Center: Document plane */
+    .doc-shell{
+      display:flex;
+      flex-direction:column;
+      height:100%;
+      min-height:0;
+    }
+
+    .doc-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .doc-title{
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .doc-title strong{
+      font-size: 13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 560px;
+    }
+
+    .doc-title span{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 560px;
+    }
+
+    .upload{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+
+    .file{
+      display:none;
+    }
+
+    .drop{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      padding: 22px;
+      margin: 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,0.20);
+      background: rgba(255,255,255,0.02);
+      color: var(--muted);
+      text-align:center;
+    }
+
+    .drop b{ color: var(--text); font-weight: 600; }
+
+    .doc-view{
+      flex:1;
+      min-height:0;
+      padding: 18px 18px 28px;
+      overflow:auto;
+    }
+
+    .doc-paper{
+      max-width: 860px;
+      margin: 0 auto;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+      padding: 22px;
+      line-height: 1.65;
+      box-shadow: 0 22px 80px rgba(0,0,0,0.35);
+    }
+
+    .doc-paper .placeholder{
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Right rail: Observations */
+    .obs-list{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .obs-item{
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      padding: 10px 12px;
+      cursor:pointer;
+    }
+    .obs-item:hover{ background: rgba(255,255,255,0.04); }
+
+    .obs-meta{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .tag{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .obs-text{
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    .obs-actions{
+      display:flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .mini{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 10px;
+    }
+
+    /* Bottom bar */
+    .bottombar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 0 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(13,17,26,0.75);
+      backdrop-filter: blur(10px);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 70%;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      padding: 2px 6px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* Modal (Intent Pre-load) */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal{
+      width: min(760px, 100%);
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(to bottom, rgba(15,20,32,0.98), rgba(13,17,26,0.98));
+      box-shadow: 0 22px 120px rgba(0,0,0,0.60);
+      overflow:hidden;
+    }
+
+    .modal-header{
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-header h1{
+      margin:0;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+    .modal-header p{
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 64ch;
+    }
+
+    .modal-body{
+      padding: 16px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .card{
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      padding: 12px;
+      min-height: 120px;
+    }
+
+    .card h3{
+      margin:0;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .card p{
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .modal-footer{
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+    }
+
+    .modal-footer .left{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* Responsive */
+    @media (max-width: 1120px){
+      .main{ grid-template-columns: 320px 1fr; }
+      .rightRail{ display:none; }
+    }
+    @media (max-width: 860px){
+      .main{ grid-template-columns: 1fr; }
+      .leftRail{ order:2; }
+      .centerPlane{ order:1; }
+      .top-actions{ min-width:auto; }
+      .brand{ min-width:auto; }
+      .mode-pill{ display:none; }
+      .modal-body{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <header class="topbar" role="banner">
+      <div class="brand" aria-label="PhiSeal brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="brand-title">
+          <strong>PhiSeal</strong>
+          <span>Review workspace</span>
+        </div>
+      </div>
+
+      <div class="mode-pill" id="modePill" title="Current review intent">
+        <span class="dot" aria-hidden="true"></span>
+        <span><b id="modeLabel">Reviewing</b>: <span id="modeText">for missing assumptions and gaps</span></span>
+      </div>
+
+      <div class="top-actions" aria-label="Top actions">
+        <button class="btn" id="btnNew">New review</button>
+        <button class="btn" id="btnExport">Export</button>
+        <button class="btn primary" id="btnIntent">Set intent</button>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main" role="main">
+
+      <!-- LEFT RAIL: USER INTENT + CONSTRAINTS -->
+      <section class="panel leftRail" aria-label="Intent and constraints">
+        <div class="panel-header">
+          <div>
+            <h2>What are you trying to understand?</h2>
+            <p>State your intent and constraints. PhiSeal will surface structural uncertainty without asserting conclusions.</p>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="field">
+            <label for="intentText">Intent statement</label>
+            <textarea id="intentText" placeholder="Example: I want to know whether this argument relies on unstated assumptions and whether key terms are defined consistently."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="scopeText">Scope (optional)</label>
+            <input type="text" id="scopeText" placeholder="Example: Focus on sections 2–4, ignore appendices." />
+          </div>
+
+          <div class="toggle">
+            <input type="checkbox" id="tStayInDoc" checked />
+            <div>
+              <strong>Stay within the document</strong>
+              <span>Do not introduce external facts or new claims. Flag unknowns explicitly.</span>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <input type="checkbox" id="tNoVerdict" checked />
+            <div>
+              <strong>No verdict language</strong>
+              <span>Prefer “unclear / unsupported / unspecified” over judgment or scoring.</span>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <input type="checkbox" id="tCiteSpans" checked />
+            <div>
+              <strong>Always point to source spans</strong>
+              <span>Each observation should identify where it appears in the document.</span>
+            </div>
+          </div>
+
+          <div class="hint">
+            Tip: Treat this like instructing a meticulous reviewer. The more precise the constraints, the more stable the analysis.
+          </div>
+        </div>
+      </section>
+
+      <!-- CENTER PLANE: DOCUMENT OBJECT -->
+      <section class="panel centerPlane" aria-label="Document review plane">
+        <div class="doc-shell">
+
+          <div class="doc-toolbar">
+            <div class="doc-title">
+              <strong id="docName">No document loaded</strong>
+              <span id="docMeta">Upload a PDF or DOCX to begin. The document remains the primary object of review.</span>
+            </div>
+
+            <div class="upload">
+              <input class="file" id="fileInput" type="file" accept=".pdf,.docx" />
+              <button class="btn primary" id="btnUpload">Upload PDF/DOCX</button>
+            </div>
+          </div>
+
+          <div class="drop" id="dropZone" tabindex="0" role="button" aria-label="Document drop zone">
+            <div><b>Drop a PDF or DOCX</b> here</div>
+            <div>or use <span class="kbd">Upload</span> to choose a file</div>
+          </div>
+
+          <div class="doc-view" id="docView" aria-label="Document viewer">
+            <div class="doc-paper" id="docPaper">
+              <div class="placeholder">
+                Once a document is loaded, this surface becomes the “document plane.”<br />
+                Your extraction/rendering layer (app.js) can replace this placeholder with formatted text (preferred) or a PDF viewer.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT RAIL: SYSTEM OBSERVATIONS -->
+      <section class="panel rightRail" aria-label="System observations">
+        <div class="panel-header">
+          <div>
+            <h2>What the system is noticing</h2>
+            <p>Neutral observations: ambiguities, gaps, and tensions. No scoring. No verdicts.</p>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="obs-list" id="obsList">
+
+            <!-- Example items (replace with generated content) -->
+            <div class="obs-item" data-anchor="sec-2">
+              <div class="obs-meta">
+                <span class="tag">Ambiguity</span>
+                <span>Ref: Section 2</span>
+              </div>
+              <div class="obs-text">A key term is used as if defined earlier, but no definition is present in prior sections.</div>
+              <div class="obs-actions">
+                <button class="btn mini" type="button">Jump</button>
+                <button class="btn mini" type="button">Ask a question</button>
+              </div>
+            </div>
+
+            <div class="obs-item" data-anchor="sec-3">
+              <div class="obs-meta">
+                <span class="tag">Missing assumption</span>
+                <span>Ref: Section 3</span>
+              </div>
+              <div class="obs-text">This inference appears to require a causal link that is not established inside the document.</div>
+              <div class="obs-actions">
+                <button class="btn mini" type="button">Jump</button>
+                <button class="btn mini" type="button">Ask a question</button>
+              </div>
+            </div>
+
+            <div class="obs-item" data-anchor="sec-4">
+              <div class="obs-meta">
+                <span class="tag">Unresolved reference</span>
+                <span>Ref: Section 4</span>
+              </div>
+              <div class="obs-text">A citation is referenced (“as shown above”) but the supporting figure or table is not included.</div>
+              <div class="obs-actions">
+                <button class="btn mini" type="button">Jump</button>
+                <button class="btn mini" type="button">Ask a question</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM BAR -->
+    <footer class="bottombar" role="contentinfo">
+      <div class="status" id="statusText">
+        Status: Waiting for intent + document.
+      </div>
+      <div>
+        <span class="kbd">Ctrl</span> + <span class="kbd">K</span> for commands (optional)
+      </div>
+    </footer>
+  </div>
+
+  <!-- INTENT PRE-LOAD MODAL -->
+  <div class="modal-backdrop" id="intentModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Set intent">
+      <div class="modal-header">
+        <h1>Start with intent</h1>
+        <p>
+          PhiSeal does not begin by “answering.” It begins by adopting your constraints and surfacing what may be structurally incomplete.
+          Choose a review posture and refine it in your own words.
+        </p>
+      </div>
+
+      <div class="modal-body">
+        <div class="card" role="button" tabindex="0" data-preset="missing-assumptions">
+          <h3>Check for missing assumptions or gaps</h3>
+          <p>Surface unstated premises, leaps of logic, undefined terms, and missing dependencies.</p>
+        </div>
+
+        <div class="card" role="button" tabindex="0" data-preset="external-review">
+          <h3>Prepare material for external review or audit</h3>
+          <p>Prioritize traceability: explicit references, scope boundaries, and unresolved claims.</p>
+        </div>
+
+        <div class="card" role="button" tabindex="0" data-preset="reasoning-review">
+          <h3>Review reasoning in a document</h3>
+          <p>Focus on argument structure: claims, support, internal consistency, and implied assumptions.</p>
+        </div>
+
+        <div class="card" role="button" tabindex="0" data-preset="not-settling">
+          <h3>Diagnose why a decision or argument is not settling</h3>
+          <p>Surface competing frames, missing criteria, unresolved tradeoffs, and ambiguity clusters.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="left">
+          You can edit the intent later. The system should remain inside your stated constraints.
+        </div>
+        <div class="right">
+          <button class="btn" id="btnCloseModal" type="button">Not now</button>
+          <button class="btn primary" id="btnApplyIntent" type="button">Apply intent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // UI-only wiring for index.html. Your app.js can replace this.
+    const qs = (s) => document.querySelector(s);
+
+    const intentModal = qs('#intentModal');
+    const btnIntent = qs('#btnIntent');
+    const btnCloseModal = qs('#btnCloseModal');
+    const btnApplyIntent = qs('#btnApplyIntent');
+
+    const intentText = qs('#intentText');
+    const modeText = qs('#modeText');
+    const statusText = qs('#statusText');
+
+    const fileInput = qs('#fileInput');
+    const btnUpload = qs('#btnUpload');
+    const dropZone = qs('#dropZone');
+
+    const docName = qs('#docName');
+    const docMeta = qs('#docMeta');
+
+    let selectedPreset = null;
+
+    function openModal(){
+      intentModal.style.display = 'flex';
+      intentModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal(){
+      intentModal.style.display = 'none';
+      intentModal.setAttribute('aria-hidden', 'true');
+    }
+
+    // Intent presets (human-language scaffolding)
+    const presets = {
+      'missing-assumptions': "I want to identify missing assumptions, undefined terms, and leaps in reasoning. Stay within the document and point to the exact spans that trigger each observation.",
+      'external-review': "I want to prepare this document for external review. Please surface ambiguities, traceability gaps, and any claims that lack internal support. Always reference where each issue appears.",
+      'reasoning-review': "I want a structured review of the reasoning in this document: claims, supports, internal consistency, and implied premises. No scoring and no verdict language.",
+      'not-settling': "I want to diagnose why this argument or decision is not settling. Please surface competing frames, missing criteria, unresolved tradeoffs, and ambiguity clusters, with span references."
+    };
+
+    // Modal interactions
+    btnIntent.addEventListener('click', openModal);
+    btnCloseModal.addEventListener('click', closeModal);
+
+    intentModal.addEventListener('click', (e) => {
+      if (e.target === intentModal) closeModal();
+    });
+
+    document.querySelectorAll('.card[data-preset]').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.card[data-preset]').forEach(c => c.style.borderColor = 'var(--line)');
+        card.style.borderColor = 'rgba(138,180,255,0.55)';
+        selectedPreset = card.getAttribute('data-preset');
+      });
+      card.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') card.click();
+      });
+    });
+
+    btnApplyIntent.addEventListener('click', () => {
+      if (selectedPreset && presets[selectedPreset]) {
+        intentText.value = presets[selectedPreset];
+        modeText.textContent = (() => {
+          switch(selectedPreset){
+            case 'missing-assumptions': return 'for missing assumptions and gaps';
+            case 'external-review': return 'for external review / audit readiness';
+            case 'reasoning-review': return 'for reasoning structure and internal support';
+            case 'not-settling': return 'for why the argument is not settling';
+            default: return 'for review';
+          }
+        })();
+        statusText.textContent = "Status: Intent applied. Load a document to begin analysis.";
+      } else {
+        statusText.textContent = "Status: Choose an intent preset or write your own intent on the left.";
+      }
+      closeModal();
+    });
+
+    // Upload hooks (UI-only)
+    btnUpload.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+
+      docName.textContent = file.name;
+      docMeta.textContent = "Loaded locally. Extraction/rendering should be handled by your processing layer (app.js).";
+      statusText.textContent = "Status: Document loaded. Ready for extraction + observation generation.";
+
+      // NOTE: Your app.js should read the file, extract text, and populate #docPaper and #obsList.
+      // Example handoff:
+      // window.dispatchEvent(new CustomEvent('phiseal:fileSelected', { detail: { file } }));
+    });
+
+    // Drag + drop (UI-only)
+    ['dragenter','dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(138,180,255,0.55)';
+        dropZone.style.background = 'rgba(138,180,255,0.06)';
+      });
+    });
+
+    ['dragleave','drop'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(255,255,255,0.20)';
+        dropZone.style.background = 'rgba(255,255,255,0.02)';
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files?.[0];
+      if (!file) return;
+
+      // Mirror into file input UI state (not a true assignment for security reasons),
+      // but we can process the File object directly in app.js.
+      docName.textContent = file.name;
+      docMeta.textContent = "Dropped locally. Extraction/rendering should be handled by your processing layer (app.js).";
+      statusText.textContent = "Status: Document loaded via drop. Ready for extraction + observation generation.";
+
+      // Handoff for your logic layer:
+      // window.dispatchEvent(new CustomEvent('phiseal:fileDropped', { detail: { file } }));
+    });
+
+    // First-run: show intent modal
+    window.addEventListener('load', () => {
+      openModal();
+      statusText.textContent = "Status: Set intent first, then load a document.";
+    });
+  </script>
+</body>
+</html>

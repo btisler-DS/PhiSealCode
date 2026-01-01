@@ -11,7 +11,15 @@
       "Bash(git reset:*)",
       "Bash(git commit:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel login)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel env add:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(curl:*)",
+      "Bash(npx expo start:*)"
     ]
   }
 }

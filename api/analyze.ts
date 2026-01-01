@@ -127,47 +127,39 @@ export default async function handler(
     // Load system prompt from MASTER.md
     const systemPrompt = loadSystemPrompt();
 
-    // Create user prompt for document analysis
-    const userPrompt = `Analyze the following document using the HDT² framework (Ω → Δ → Φ → Ψ).
+    // Create user prompt for document analysis with PhiSeal principles
+    const userPrompt = `Review the following document according to the PhiSeal principles:
 
-Intent: ${intent}
+CORE PRINCIPLES:
+- You surface structural uncertainty. You do NOT answer, advise, or conclude.
+- Use neutral language: "unclear," "unspecified," "not established," "appears to assume."
+- NO scoring, grading, or verdicts (no "good/bad," "strong/weak," "high/medium/low").
+- Stay within the document. Flag unknowns explicitly rather than filling gaps.
+- Always cite where in the document each observation appears.
 
-Document content:
+REVIEW INTENT:
+${intent}
+
+DOCUMENT CONTENT:
 ${documentText}
 
-Please provide analysis in the following JSON structure:
+Please provide observations in the following JSON structure:
 {
-  "delta": [
+  "observations": [
     {
-      "id": "Δ₁",
-      "severity": "high|medium|low",
-      "description": "specific gap or ambiguity",
-      "context": "relevant text from document"
-    }
-  ],
-  "assumptions": [
-    {
-      "id": "A₁",
-      "assumption": "what was assumed",
-      "basis": "why it was assumed"
-    }
-  ],
-  "conflicts": [
-    {
-      "id": "C₁",
-      "conflict": "contradictory statements",
-      "locations": ["page/section reference"]
+      "type": "Ambiguity | Missing assumption | Gap | Unresolved reference | Tension",
+      "reference": "Where in the document (e.g., 'Section 2', 'Page 3', 'Paragraph 5')",
+      "text": "Neutral observation of what is structurally uncertain or unsupported",
+      "anchor": "ref-1"
     }
   ]
 }
 
-Remember:
-- NO recommendations or advice
-- NO gap-filling or hallucination
-- Surface all unknowns explicitly
-- Identify contradictions
-- List all assumptions made
-- Apply severity tags to all Δ items`;
+REMEMBER:
+- NO severity scores or confidence levels
+- NO recommendations or suggestions
+- NO external facts or gap-filling
+- ONLY surface what is uncertain, missing, or in tension within the document itself`;
 
     // Call Anthropic API
     const message = await anthropic.messages.create({
@@ -188,38 +180,54 @@ Remember:
       : '';
 
     // Try to parse JSON from response
-    let analysis;
+    let observations;
     try {
       // Look for JSON in code blocks or raw JSON
       const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) ||
                        responseText.match(/(\{[\s\S]*\})/);
 
       if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[1]);
+        const parsed = JSON.parse(jsonMatch[1]);
+        observations = parsed.observations || [];
       } else {
-        // Fallback to regex parsing
-        analysis = parseAnalysis(responseText);
+        // Fallback: create a simple observation from the text
+        observations = [{
+          type: 'General observation',
+          reference: 'Document',
+          text: responseText,
+          anchor: 'ref-1'
+        }];
       }
     } catch (parseError) {
-      // If JSON parsing fails, use regex parsing
-      analysis = parseAnalysis(responseText);
+      // If JSON parsing fails, create a simple observation
+      observations = [{
+        type: 'Analysis',
+        reference: 'Document',
+        text: responseText,
+        anchor: 'ref-1'
+      }];
     }
 
-    // Construct manifest
-    const manifest = {
-      manifest: {
+    // Add IDs to observations if not present
+    const observationsWithIds = observations.map((obs: any, idx: number) => ({
+      id: obs.id || `obs-${Date.now()}-${idx}`,
+      type: obs.type || 'Observation',
+      reference: obs.reference || 'Document',
+      text: obs.text || obs.description || 'No description',
+      anchor: obs.anchor || `ref-${idx}`,
+    }));
+
+    // Construct response
+    return res.status(200).json({
+      success: true,
+      observations: observationsWithIds,
+      metadata: {
         file_hash: fileHash,
         extraction_method: fileType === 'pdf' ? 'pdf-parse_v1.0' : 'mammoth_v1.0',
         timestamp: new Date().toISOString(),
         engine_version: 'phiseal_v0.1',
         intent,
       },
-      analysis,
-    };
-
-    return res.status(200).json({
-      success: true,
-      manifest,
     });
   } catch (error: any) {
     console.error('Analysis error:', error);
